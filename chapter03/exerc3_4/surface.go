@@ -6,18 +6,20 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"strconv"
 )
 
 const (
-	width, height = 600, 320            // tamanho do canvas em pixels
-	cells         = 100                 // número de células da grade
-	xyrange       = 30.0                // intervalos dos eixos (-xyrange..+xyrange)
-	xyscale       = width / 2 / xyrange // pixels por unidade x ou y
-	zscale        = height * 0.4        // pixels por unidade z
-	angle         = math.Pi / 6         // ângulo dos eixos x, y (=30°)
+	width, height = 600, 320            // canvas size in pixels
+	color         = "grey"              // drawing color
+	cells         = 100                 // grid cells
+	xyrange       = 30.0                // axis interval (-xyrange..+xyrange)
+	xyscale       = width / 2 / xyrange // pixels per unity x ou y
+	zscale        = height * 0.4        // pixels per unity z
+	angle         = math.Pi / 6         // x, y axis angle (=30°)
 )
 
-var sin30, cos30 = math.Sin(angle), math.Cos(angle) // seno(30°), cosseno(30°)
+var sin30, cos30 = math.Sin(angle), math.Cos(angle) // sin(30°), cosin(30°)
 
 func main() {
 	http.HandleFunc("/", createImage)
@@ -26,10 +28,23 @@ func main() {
 
 func createImage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "image/svg+xml")
+	m_width, _ := strconv.Atoi(r.FormValue("width"))
+	m_height, _ := strconv.Atoi(r.FormValue("height"))
+	m_color := r.FormValue("color")
+
+	if m_width <= 0 {
+		m_width = width
+	}
+	if m_height <= 0 {
+		m_height = height
+	}
+	if len(m_color) == 0 {
+		m_color = color
+	}
 
 	fmt.Fprintf(w, "<svg xmlns='http://www.w3.org/2000/svg' "+
-		"style='stroke: grey; fill: white; strokewidth: 0.7' "+
-		"width='%d' height='%d'>\n", width, height)
+		"style='stroke: %s; fill: white; strokewidth: 0.7' "+
+		"width='%d' height='%d'>\n", m_color, m_width, m_height)
 
 	for i := 0; i < cells; i++ {
 		for j := 0; j < cells; j++ {
@@ -46,17 +61,17 @@ func createImage(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "</svg>")
 }
 
-func corner(i, j int) (float64, float64) { // Encontra o ponto (x,y) no canto da célula (i,j)
+func corner(i, j int) (float64, float64) { // Finds (x,y) of cell (i,j) corner
 	x := xyrange * (float64(i)/cells - 0.5)
-	y := xyrange * (float64(j)/cells - 0.5) // Calcula a altura z da superfície
-	z := f(x, y)                            // Faz uma projeção isométrica de (x,y,z) sobre (sx,sy) do canvas SVG 2D
+	y := xyrange * (float64(j)/cells - 0.5) // Computes surface z height
+	z := f(x, y)                            // Isometric projection of (x,y,z) on (sx,sy) from SVG 2D canvas
 	sx := width/2 + (x-y)*cos30*xyscale
 	sy := height/2 + (x+y)*sin30*xyscale - z*zscale
 	return sx, sy
 }
 
 func f(x, y float64) float64 {
-	r := math.Hypot(x, y) // distância de (0,0)
+	r := math.Hypot(x, y) // distance from (0,0)
 	return math.Sin(r) / r
 }
 
