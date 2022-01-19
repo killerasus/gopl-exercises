@@ -35,7 +35,6 @@ func main() {
 			g := uint8(0x00)
 			b := uint8(Lerp(0xFF, 0x00, t))
 
-			//c := color.RGBA{r, g, b, uint8(0)}
 			color := fmt.Sprintf("%02x%02x%02x", r, g, b)
 
 			if IsValid([]float64{ax, ay, bx, by, cx, cy, dx, dy}) {
